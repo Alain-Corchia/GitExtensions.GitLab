@@ -31,6 +31,33 @@ with forks. Requires **Git Extensions 7.x** (.NET 10).
   `%LOCALAPPDATA%\GitExtensions\UserPlugins\GitExtensions.GitLab.Raincode\` (or `UserPlugins\GitExtensions.GitLab.Raincode\`
   next to `GitExtensions.exe` for a portable installation), then restart Git Extensions.
 
+## Internal distribution (Raincode)
+
+The package `GitExtensions.GitLab.Raincode` is published in the package registry of the project
+[raincode/gitextensions-gitlab](http://owngit.corp.phidani.be/raincode/gitextensions-gitlab)
+(NuGet source `http://owngit.corp.phidani.be/api/v4/projects/558/packages/nuget/index.json`).
+
+To install it with the Plugin Manager:
+
+1. Create a personal access token with the `read_api` scope on the internal GitLab
+   (a deploy token with the `read_package_registry` scope works too).
+2. Close Git Extensions and add the package source to the Plugin Manager:
+   ```bash
+   powershell -ExecutionPolicy Bypass -File tools/Add-PluginSource.ps1
+   ```
+   The script asks for the GitLab user name and the token, and stores them in
+   `%LOCALAPPDATA%\GitExtensions\UserPlugins\NuGet.Config`.
+3. Start Git Extensions, open *Plugins > Plugin Manager* and install `GitExtensions.GitLab.Raincode`.
+
+To publish a new version: increase `VersionPrefix` in `src/GitExtensions.GitLab/GitExtensions.GitLab.csproj`,
+then pack and push. Pushing requires a token with the `api` scope: give such a token to the script
+above for the `raincode-gitlab` source used by the push:
+
+```bash
+dotnet pack src/GitExtensions.GitLab -c Release -o artifacts
+dotnet nuget push artifacts/GitExtensions.GitLab.Raincode.<version>.nupkg --source raincode-gitlab --configfile %LOCALAPPDATA%\GitExtensions\UserPlugins\NuGet.Config
+```
+
 ## Configuration
 
 *Plugins > Plugin Settings > GitLab*:
