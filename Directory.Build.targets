@@ -11,8 +11,9 @@
       <_UserPluginsPath Condition="'$(UserPluginsPath)' == ''">$(LOCALAPPDATA)\GitExtensions\UserPlugins</_UserPluginsPath>
       <_PluginDeployPath>$(_UserPluginsPath)\$(MSBuildProjectName)</_PluginDeployPath>
     </PropertyGroup>
-    <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb" DestinationFolder="$(_PluginDeployPath)" ContinueOnError="WarnAndContinue" />
-    <Message Text="Plugin deployed to $(_PluginDeployPath) (restart Git Extensions to load it)" Importance="high" />
+    <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb" DestinationFolder="$(_PluginDeployPath)" Retries="0" ContinueOnError="WarnAndContinue" />
+    <Message Condition="'$(MSBuildLastTaskResult)' == 'true'" Text="Plugin deployed to $(_PluginDeployPath) (restart Git Extensions to load it)" Importance="high" />
+    <Warning Condition="'$(MSBuildLastTaskResult)' != 'true'" Text="Plugin NOT deployed to $(_PluginDeployPath): close Git Extensions and build again." />
   </Target>
 
 </Project>
