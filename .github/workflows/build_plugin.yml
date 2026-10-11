@@ -57,4 +57,6 @@ jobs:
 
     - name: Push to nuget.org
       if: startsWith(github.ref, 'refs/tags/v')
-      run: dotnet nuget push artifacts/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      shell: pwsh
+      # dotnet nuget push does not expand the wildcard on Windows runners.
+      run: dotnet nuget push (Get-Item artifacts/*.nupkg).FullName --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
