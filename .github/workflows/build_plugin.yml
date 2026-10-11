@@ -21,8 +21,18 @@ jobs:
       with:
         dotnet-version: 10.0.x
 
-    # Git Extensions is not installed on the runner: the GitExtensions.Extensibility package
-    # downloads the portable version set in Directory.Build.props into ./gitextensions.shared.
+    # Git Extensions is not installed on the runner. The GitExtensions.Extensibility package can download it,
+    # but without authentication, so the GitHub API rate limit of shared runners makes it fail: download the
+    # portable version set in Directory.Build.props into ./gitextensions.shared with the workflow token instead.
+    - name: Download Git Extensions
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $version = (Select-Xml -Path Directory.Build.props -XPath '//GitExtensionsReferenceVersion').Node.InnerText
+        gh release download $version --repo gitextensions/gitextensions --pattern 'GitExtensions-Portable-x64-*.zip' --output gitextensions.zip
+        Expand-Archive gitextensions.zip -DestinationPath gitextensions.shared
+
     - name: Build
       run: dotnet build GitExtensions.GitLab.sln -c Release
 
