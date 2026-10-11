@@ -140,7 +140,9 @@ public sealed class GitLabPlugin : GitPluginBase, IRepositoryHostPlugin
 
     private void OpenCreateTokenPage()
     {
-        if (!TryGetInstanceUrl(out Uri? instanceUrl))
+        // The URL being edited in the settings dialog is not saved until OK or Apply.
+        if (!GitLabRemoteParser.TryParseInstanceUrl(GitLabUrl.CustomControl?.Text, out Uri? instanceUrl)
+            && !TryGetInstanceUrl(out instanceUrl))
         {
             instanceUrl = new Uri(DefaultGitLabUrl);
         }
