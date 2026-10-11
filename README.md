@@ -19,9 +19,10 @@ with forks. Requires **Git Extensions 7.x** (.NET 10).
   in the dialog above): source and target project and branch (forks target their parent project by
   default), title, description (prefilled from `.gitlab/merge_request_templates/Default.md`), draft,
   assignee, reviewer, labels, squash and delete-source-branch options, preview of the commits and changes.
-- **Git Extensions repository host integration**: the *Repository hosts* menu (view pull requests,
-  create pull request, fork / clone, add upstream remote) and the *View in GitLab* blame link work
-  for GitLab repositories.
+- **Git Extensions repository host integration**: in a GitLab repository, the *Repository hosts* menu is
+  named *GitLab* and offers the commands of this plugin: fork / clone a GitLab project, merge requests,
+  create merge request, add upstream remote (the project your fork was forked from). The blame view
+  offers *View in GitLab*.
 
 ## Installation
 

@@ -41,6 +41,8 @@ internal sealed class GitLabHostedRepository : IHostedRepository
     /// <summary>
     ///  The project this one was forked from, with its clone URLs.
     /// </summary>
+    public Project? ParentProject => Parent;
+
     private Project? Parent
     {
         get

@@ -13,6 +13,7 @@ public sealed class Project
     public string SshUrlToRepo { get; init; } = "";
     public string? Visibility { get; init; }
     public int ForksCount { get; init; }
+    public DateTimeOffset? LastActivityAt { get; init; }
     public ProjectNamespace? Namespace { get; init; }
     public Project? ForkedFromProject { get; init; }
 

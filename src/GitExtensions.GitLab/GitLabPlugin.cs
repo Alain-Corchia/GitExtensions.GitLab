@@ -33,6 +33,13 @@ public sealed class GitLabPlugin : GitPluginBase, IRepositoryHostPlugin
     private readonly TranslationString _error = new("Error");
     private readonly TranslationString _mergeRequestsMenu = new("&Merge requests...");
     private readonly TranslationString _createMergeRequestMenu = new("&Create merge request...");
+    private readonly TranslationString _forkCloneMenu = new("&Fork/Clone repository...");
+    private readonly TranslationString _addUpstreamRemoteMenu = new("Add &upstream remote");
+    private readonly TranslationString _addUpstreamRemoteCaption = new("Add upstream remote");
+    private readonly TranslationString _noForkRemote = new("No remote of this repository is a fork in your GitLab namespace ({0}): there is no parent project to add as upstream remote.");
+    private readonly TranslationString _parentAlreadyRemote = new("The parent project {0} is already the remote \"{1}\".");
+    private readonly TranslationString _upstreamNameTaken = new("A remote named \"{0}\" already exists.");
+    private readonly TranslationString _upstreamFailed = new("The upstream remote could not be added: {0}");
 
     public const string DefaultGitLabUrl = "https://gitlab.com";
     private const string UpstreamRemoteName = "upstream";
@@ -94,8 +101,8 @@ public sealed class GitLabPlugin : GitPluginBase, IRepositoryHostPlugin
 
     /// <summary>
     ///  Git Extensions has a single "Repository hosts" menu, named after the first host plugin loaded (often GitHub),
-    ///  whereas its commands use the host of the current repository: name it after that host and, for GitLab,
-    ///  replace its pull request commands, made for GitHub forks, by the merge request dialogs of this plugin.
+    ///  whereas its commands use the host of the current repository (except Fork/Clone, which uses that first plugin):
+    ///  name it after the host of the current repository and, for GitLab, replace its commands by those of this plugin.
     /// </summary>
     private void OnPostRegisterPlugin(object? sender, GitUIEventArgs e)
     {
@@ -137,25 +144,32 @@ public sealed class GitLabPlugin : GitPluginBase, IRepositoryHostPlugin
             }
         }
 
+        // Native commands made for GitHub, or always using the first host plugin loaded (Fork/Clone),
+        // replaced on GitLab repositories by the commands of this plugin, at the same place.
         bool isGitLab = host == this;
-        ToolStripItem? viewPullRequests = items.Find("_viewPullRequestsToolStripMenuItem", searchAllChildren: false).FirstOrDefault();
-        ToolStripItem? createPullRequest = items.Find("_createPullRequestsToolStripMenuItem", searchAllChildren: false).FirstOrDefault();
-        foreach (ToolStripItem? nativeItem in new[] { viewPullRequests, createPullRequest })
+        (string NativeItemName, Func<ToolStripMenuItem> CreateItem)[] replacements =
+        [
+            ("_forkCloneRepositoryToolStripMenuItem", () => new(_forkCloneMenu.Text, image: null, (_, _) => ShowForkAndClone(commands, owner))),
+            ("_viewPullRequestsToolStripMenuItem", () => new(_mergeRequestsMenu.Text, Icon, (_, _) => ShowMergeRequests(commands, owner))),
+            ("_createPullRequestsToolStripMenuItem", () => new(_createMergeRequestMenu.Text, image: null, (_, _) => ShowCreateMergeRequest(commands, owner))),
+            ("_addUpstreamRemoteToolStripMenuItem", () => new(_addUpstreamRemoteMenu.Text, image: null, (_, _) => AddUpstreamRemote(commands, owner))),
+        ];
+
+        foreach ((string nativeItemName, Func<ToolStripMenuItem> createItem) in replacements)
         {
-            if (nativeItem is not null)
+            if (items.Find(nativeItemName, searchAllChildren: false).FirstOrDefault() is not { } nativeItem)
             {
-                nativeItem.Visible = !isGitLab;
+                continue;
+            }
+
+            nativeItem.Visible = !isGitLab;
+            if (isGitLab)
+            {
+                ToolStripMenuItem item = createItem();
+                item.Tag = gitLabMenuItem;
+                items.Insert(items.IndexOf(nativeItem), item);
             }
         }
-
-        if (!isGitLab)
-        {
-            return;
-        }
-
-        int index = viewPullRequests is null ? items.Count : items.IndexOf(viewPullRequests);
-        items.Insert(index, new ToolStripMenuItem(_mergeRequestsMenu.Text, Icon, (_, _) => ShowMergeRequests(commands, owner)) { Tag = gitLabMenuItem });
-        items.Insert(index + 1, new ToolStripMenuItem(_createMergeRequestMenu.Text, image: null, (_, _) => ShowCreateMergeRequest(commands, owner)) { Tag = gitLabMenuItem });
     }
 
     /// <summary>
@@ -380,30 +394,83 @@ public sealed class GitLabPlugin : GitPluginBase, IRepositoryHostPlugin
             .Select(project => (IHostedRepository)new GitLabHostedRepository(this, project))];
     }
 
-    public async Task<string?> AddUpstreamRemoteAsync()
+    public async Task<string?> AddUpstreamRemoteAsync() => (await TryAddUpstreamRemoteAsync()).RemoteName;
+
+    /// <summary>
+    ///  Adds the project the user's fork was forked from as the remote "upstream".
+    /// </summary>
+    /// <returns>The name of the added remote, or why no remote was added.</returns>
+    private async Task<(string? RemoteName, string Message)> TryAddUpstreamRemoteAsync()
     {
         IGitModule? module = _gitUICommands?.Module;
-        GitLabHostedRemote? myRemote = GetHostedRemotes().FirstOrDefault(remote => remote.IsOwnedByMe);
-        if (module is null || myRemote is null)
+        if (module is null)
         {
-            return null;
+            return (null, "");
         }
 
-        GitLabHostedRepository repository = myRemote.GetRepository();
-        string? parentUrl = repository.ParentUrl;
-        if (parentUrl is null)
+        IReadOnlyList<GitLabHostedRemote> hostedRemotes = GetHostedRemotes();
+        GitLabHostedRepository? fork = hostedRemotes
+            .Where(remote => remote.IsOwnedByMe)
+            .Select(remote => remote.GetRepository())
+            .FirstOrDefault(repository => repository.IsAFork);
+        if (fork?.ParentProject is not { } parent || fork.ParentUrl is not { } parentUrl)
         {
-            return null;
+            return (null, string.Format(_noForkRemote.Text, CurrentUsername));
         }
 
-        IReadOnlyList<Remote> remotes = await module.GetRemotesAsync();
-        if (remotes.Any(remote => remote.Name == UpstreamRemoteName || remote.FetchUrl == parentUrl))
+        if (hostedRemotes.FirstOrDefault(remote => string.Equals(remote.ProjectPath, parent.PathWithNamespace, StringComparison.OrdinalIgnoreCase)) is { } parentRemote)
         {
-            return null;
+            return (null, string.Format(_parentAlreadyRemote.Text, parent.PathWithNamespace, parentRemote.Name));
         }
 
-        module.AddRemote(UpstreamRemoteName, parentUrl);
-        return UpstreamRemoteName;
+        if ((await module.GetRemotesAsync()).Any(remote => remote.Name == UpstreamRemoteName))
+        {
+            return (null, string.Format(_upstreamNameTaken.Text, UpstreamRemoteName));
+        }
+
+        string error = module.AddRemote(UpstreamRemoteName, parentUrl);
+        return string.IsNullOrEmpty(error) ? (UpstreamRemoteName, "") : (null, string.Format(_upstreamFailed.Text, error));
+    }
+
+    internal void AddUpstreamRemote(IGitUICommands commands, IWin32Window? owner)
+    {
+        if (!EnsureConfigured(commands) || !EnsureRelevantRepository(owner))
+        {
+            return;
+        }
+
+        ThreadHelper.FileAndForget(async () =>
+        {
+            string? remoteName;
+            string message;
+            try
+            {
+                (remoteName, message) = await TryAddUpstreamRemoteAsync();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                (remoteName, message) = (null, string.Format(_upstreamFailed.Text, ex.Message));
+            }
+
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            if (remoteName is null)
+            {
+                MessageBoxes.Show(owner, message, _addUpstreamRemoteCaption.Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            commands.RepoChangedNotifier.Notify();
+            commands.StartPullDialogAndPullImmediately(owner, remoteBranch: null, remoteName, GitPullAction.Fetch);
+        });
+    }
+
+    internal void ShowForkAndClone(IGitUICommands commands, IWin32Window? owner)
+    {
+        if (EnsureConfigured(commands) && EnsureRelevantRepository(owner))
+        {
+            using CloneProjectForm form = new(commands, this);
+            form.ShowDialog(owner);
+        }
     }
 
     public void ConfigureContextMenu(ContextMenuStrip contextMenu)
