@@ -1,0 +1,23 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!--
+    Git Extensions binaries the plugin is compiled against.
+    An installed Git Extensions is used when present; otherwise the GitExtensions.Extensibility
+    package downloads the portable version $(GitExtensionsReferenceVersion) into ./gitextensions.shared.
+    Override with: dotnet build -p:GitExtensionsPath=C:\path\to\GitExtensions
+  -->
+  <PropertyGroup>
+    <GitExtensionsReferenceSource Condition="'$(GitExtensionsReferenceSource)' == ''">GitHub</GitExtensionsReferenceSource>
+    <GitExtensionsReferenceVersion Condition="'$(GitExtensionsReferenceVersion)' == ''">v7.2.1</GitExtensionsReferenceVersion>
+    <GitExtensionsPath Condition="'$(GitExtensionsPath)' == '' and Exists('$(ProgramW6432)\GitExtensions\GitExtensions.exe')">$(ProgramW6432)\GitExtensions</GitExtensionsPath>
+    <GitExtensionsPath Condition="'$(GitExtensionsPath)' == '' and Exists('$(ProgramFiles)\GitExtensions\GitExtensions.exe')">$(ProgramFiles)\GitExtensions</GitExtensionsPath>
+  </PropertyGroup>
+
+</Project>

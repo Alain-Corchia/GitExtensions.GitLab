@@ -333,3 +333,6 @@ references/
 
 # Git Extensions specific files
 GitExtensions.settings.backup
+
+# Git Extensions binaries downloaded by the GitExtensions.Extensibility package
+gitextensions.shared/

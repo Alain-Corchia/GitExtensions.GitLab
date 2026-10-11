@@ -1,0 +1,18 @@
+<Project>
+
+  <!--
+    Replaces the PostBuild target of the GitExtensions.Extensibility package, which copies only the
+    main assembly into $(GitExtensionsPath)\UserPlugins (not writable for an installed Git Extensions).
+    Deployment is opt-in: dotnet build -p:DeployPlugin=true
+  -->
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(DeployPlugin)' == 'true' and '$(IsGitExtensionsPlugin)' == 'true'">
+    <PropertyGroup>
+      <_UserPluginsPath Condition="'$(UserPluginsPath)' != ''">$(UserPluginsPath)</_UserPluginsPath>
+      <_UserPluginsPath Condition="'$(UserPluginsPath)' == ''">$(LOCALAPPDATA)\GitExtensions\UserPlugins</_UserPluginsPath>
+      <_PluginDeployPath>$(_UserPluginsPath)\$(MSBuildProjectName)</_PluginDeployPath>
+    </PropertyGroup>
+    <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb" DestinationFolder="$(_PluginDeployPath)" ContinueOnError="WarnAndContinue" />
+    <Message Text="Plugin deployed to $(_PluginDeployPath) (restart Git Extensions to load it)" Importance="high" />
+  </Target>
+
+</Project>

@@ -1,83 +1,55 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net461</TargetFramework>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <VersionPrefix>1.0.3</VersionPrefix>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <VersionPrefix>2.0.0</VersionPrefix>
+    <AssemblyName>GitExtensions.GitLab</AssemblyName>
+    <RootNamespace>GitExtensions.GitLab</RootNamespace>
+    <!-- Git Extensions resolves plugin dependencies by FileDescription prefix: keep it distinct from the assembly name. -->
+    <AssemblyTitle>GitLab plugin for Git Extensions</AssemblyTitle>
+    <IsGitExtensionsPlugin>true</IsGitExtensionsPlugin>
+    <!-- Git Extensions assemblies reference the WindowsDesktop WindowsBase, unused by the plugin. -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
   </PropertyGroup>
+
   <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
+    <InternalsVisibleTo Include="GitExtensions.GitLab.Tests" />
   </ItemGroup>
 
-  <!--SourceLink support: https://github.com/dotnet/sourcelink -->
   <ItemGroup>
-    <PackageReference Include="GitExtensions.Extensibility" Version="0.1.1.40" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="3.1.9" />
-    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.5.132" />
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="RestSharp" Version="106.11.7" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\GitExtensions.GitLab.Client\GitExtensions.GitLab.Client.csproj">
-    </ProjectReference>
-    <ProjectReference Include="..\GitExtensions.OAuthProcesses\GitExtensions.OAuthProcesses.csproj">
-      <Private>true</Private>
-    </ProjectReference>
+    <EmbeddedResource Include="Resources\IconGitlab.ico" LogicalName="GitExtensions.GitLab.IconGitlab.ico" />
   </ItemGroup>
 
-  <!-- Reference to GitExtensions dlls. -->
   <ItemGroup>
-    <Reference Include="GitCommands">
-      <HintPath>$(GitExtensionsPath)\GitCommands.dll</HintPath>
-      <!--<HintPath>F:\git\gitextensions\artifacts\bin\GitExtensions\Debug\net461\GitCommands.dll</HintPath>-->
-    </Reference>
-    <Reference Include="GitExtUtils">
-      <HintPath>$(GitExtensionsPath)\GitExtUtils.dll</HintPath>
-      <!--<HintPath>F:\git\gitextensions\artifacts\bin\GitExtensions\Debug\net461\GitExtUtils.dll</HintPath>-->
-    </Reference>
-    <Reference Include="GitUI">
-      <HintPath>$(GitExtensionsPath)\GitUI.dll</HintPath>
-      <!--<HintPath>F:\git\gitextensions\artifacts\bin\GitExtensions\Debug\net461\GitUI.dll</HintPath>-->
-    </Reference>
-    <Reference Include="GitUIPluginInterfaces">
-      <HintPath>$(GitExtensionsPath)\GitUIPluginInterfaces.dll</HintPath>
-      <!--<HintPath>F:\git\gitextensions\artifacts\bin\GitExtensions\Debug\net461\GitUIPluginInterfaces.dll</HintPath>-->
-    </Reference>
-    <Reference Include="ResourceManager">
-      <HintPath>$(GitExtensionsPath)\ResourceManager.dll</HintPath>
-      <!--<HintPath>F:\git\gitextensions\artifacts\bin\GitExtensions\Debug\net461\ResourceManager.dll</HintPath>-->
-    </Reference>
-    <Reference Include="System.ComponentModel.Composition" />
-    <Reference Include="System.DirectoryServices" />
-    <Reference Include="System.Windows.Forms" />
+    <!-- Marks the package as a Git Extensions 7.x plugin for the Plugin Manager, and downloads Git Extensions when not installed. -->
+    <PackageReference Include="GitExtensions.Extensibility" Version="7.0.0.135" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- Pack as .nupkg with dependency on GitExtensions.Extensibility -->
+  <!-- Git Extensions assemblies: provided by the host at runtime, never copied to the output. -->
+  <ItemGroup>
+    <Reference Include="GitCommands" HintPath="$(GitExtensionsPath)\GitCommands.dll" Private="false" />
+    <Reference Include="GitExtensions.Extensibility" HintPath="$(GitExtensionsPath)\GitExtensions.Extensibility.dll" Private="false" />
+    <Reference Include="GitExtUtils" HintPath="$(GitExtensionsPath)\GitExtUtils.dll" Private="false" />
+    <Reference Include="GitUI" HintPath="$(GitExtensionsPath)\GitUI.dll" Private="false" />
+    <Reference Include="GitUIPluginInterfaces" HintPath="$(GitExtensionsPath)\GitUIPluginInterfaces.dll" Private="false" />
+    <Reference Include="ResourceManager" HintPath="$(GitExtensionsPath)\ResourceManager.dll" Private="false" />
+    <Reference Include="Microsoft.VisualStudio.Threading" HintPath="$(GitExtensionsPath)\Microsoft.VisualStudio.Threading.dll" Private="false" />
+    <Reference Include="Microsoft.VisualStudio.Validation" HintPath="$(GitExtensionsPath)\Microsoft.VisualStudio.Validation.dll" Private="false" />
+    <Reference Include="System.ComponentModel.Composition" HintPath="$(GitExtensionsPath)\System.ComponentModel.Composition.dll" Private="false" />
+  </ItemGroup>
+
+  <!-- Pack as .nupkg for the Git Extensions Plugin Manager -->
   <PropertyGroup>
     <NuspecFile>$(MSBuildThisFileDirectory)$(MSBuildProjectName).nuspec</NuspecFile>
-    <Authors>ahmet.urun</Authors>
-    <Company></Company>
-    <Description>GitLab plugin for Git Extensions.</Description>
-    <PackageProjectUrl>https://github.com/ahmeturun/GitExtensions.GitLab</PackageProjectUrl>
+    <Authors>ahmet.urun, Alain Corchia</Authors>
+    <Description>GitLab plugin for Git Extensions: create, review, comment, approve and merge GitLab merge requests.</Description>
+    <PackageProjectUrl>https://github.com/Alain-Corchia/GitExtensions.GitLab</PackageProjectUrl>
     <PackageTags>GitExtensions</PackageTags>
-    <AssemblyName>GitExtensions.GitLab</AssemblyName>
+    <!-- The Plugin Manager expects the plugin assembly directly in lib/ -->
+    <NoWarn>$(NoWarn);NU5101</NoWarn>
   </PropertyGroup>
-  <!--<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>F:\git\gitextensions\artifacts\bin\GitExtensions\Debug\net461\Plugins\GitLab</OutputPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>F:\git\gitextensions\artifacts\bin\GitExtensions\Debug\net461\Plugins\GitLab</OutputPath>
-  </PropertyGroup>-->
   <Target Name="SetPackageProperties" BeforeTargets="GenerateNuspec">
     <PropertyGroup>
       <NuspecProperties>
@@ -86,14 +58,10 @@
         configuration=$(Configuration);
         tags=$(PackageTags.Replace(';',' '));
         projectUrl=$(PackageProjectUrl);
-        iconUrl=$(PackageIconUrl);
-        repositoryUrl=$(RepositoryUrl);
-        repositoryType=$(RepositoryType);
-        repositoryCommit=$(RepositoryCommit);
         author=$(Authors);
-        copyright=$(Copyright);
         description=$(Description);
         targetDir=$(TargetDir);
+        repoRoot=$(MSBuildThisFileDirectory)..\..\;
       </NuspecProperties>
     </PropertyGroup>
   </Target>

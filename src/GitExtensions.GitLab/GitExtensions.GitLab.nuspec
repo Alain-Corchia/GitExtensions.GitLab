@@ -6,17 +6,18 @@
     <authors>$author$</authors>
     <description>$description$</description>
     <projectUrl>$projectUrl$</projectUrl>
+    <license type="expression">MIT</license>
+    <icon>IconGitlab.png</icon>
+    <readme>README.md</readme>
     <tags>$tags$</tags>
     <dependencies>
-      <dependency id="GitExtensions.Extensibility" version="[0.1.0, 1.0.0)" />
+      <dependency id="GitExtensions.Extensibility" version="[7.0.0, 8.0.0)" />
     </dependencies>
   </metadata>
   <files>
-    <file src="$targetDir$$id$.dll" target="/lib" />
-    <file src="$targetDir$$id$.pdb" target="/lib" />
-    <file src="$targetDir$GitExtensions.GitLab.Client.dll" target="/lib" />
-    <file src="$targetDir$GitExtensions.GitLab.Client.pdb" target="/lib" />
-    <file src="$targetDir$Newtonsoft.Json.dll" target="/lib" />
-    <file src="$targetDir$RestSharp.dll" target="/lib" />
+    <file src="$targetDir$$id$.dll" target="lib" />
+    <file src="$targetDir$$id$.pdb" target="lib" />
+    <file src="$repoRoot$README.md" target="\" />
+    <file src="$repoRoot$assets\IconGitlab.png" target="\" />
   </files>
 </package>
