@@ -31,6 +31,8 @@ public sealed class GitLabPlugin : GitPluginBase, IRepositoryHostPlugin
     private readonly TranslationString _invalidInstanceUrl = new("The GitLab URL \"{0}\" configured in the GitLab plugin settings is not a valid http(s) URL.");
     private readonly TranslationString _noGitLabRemote = new("No remote of this repository points to the GitLab instance {0}.\r\n\r\nCheck the GitLab URL in the GitLab plugin settings.");
     private readonly TranslationString _error = new("Error");
+    private readonly TranslationString _mergeRequestsMenu = new("&Merge requests...");
+    private readonly TranslationString _createMergeRequestMenu = new("&Create merge request...");
 
     public const string DefaultGitLabUrl = "https://gitlab.com";
     private const string UpstreamRemoteName = "upstream";
@@ -92,28 +94,68 @@ public sealed class GitLabPlugin : GitPluginBase, IRepositoryHostPlugin
 
     /// <summary>
     ///  Git Extensions has a single "Repository hosts" menu, named after the first host plugin loaded (often GitHub),
-    ///  whereas its commands use the host of the current repository: name it after that host instead.
+    ///  whereas its commands use the host of the current repository: name it after that host and, for GitLab,
+    ///  replace its pull request commands, made for GitHub forks, by the merge request dialogs of this plugin.
     /// </summary>
-    private static void OnPostRegisterPlugin(object? sender, GitUIEventArgs e)
+    private void OnPostRegisterPlugin(object? sender, GitUIEventArgs e)
     {
         if (e.OwnerForm is not Form form || form.IsDisposed)
         {
             return;
         }
 
-        // Deferred: Git Extensions sets the menu text right after registering the plugins.
+        IGitUICommands commands = e.GitUICommands;
+
+        // Deferred: Git Extensions updates this menu right after registering the plugins.
         form.BeginInvoke(() =>
         {
-            if (form.IsDisposed
-                || form.Controls.Find("mainMenuStrip", searchAllChildren: true).FirstOrDefault() is not MenuStrip menuStrip
-                || menuStrip.Items.Find("_repositoryHostsToolStripMenuItem", searchAllChildren: false).FirstOrDefault() is not { } repositoryHostsMenu
-                || PluginRegistry.TryGetGitHosterForModule(e.GitUICommands.Module)?.Name is not { Length: > 0 } hostName)
+            if (!form.IsDisposed
+                && form.Controls.Find("mainMenuStrip", searchAllChildren: true).FirstOrDefault() is MenuStrip menuStrip
+                && menuStrip.Items.Find("_repositoryHostsToolStripMenuItem", searchAllChildren: false).FirstOrDefault() is ToolStripMenuItem repositoryHostsMenu)
             {
-                return;
+                UpdateRepositoryHostsMenu(repositoryHostsMenu, commands, form);
             }
-
-            repositoryHostsMenu.Text = hostName;
         });
+    }
+
+    private void UpdateRepositoryHostsMenu(ToolStripMenuItem repositoryHostsMenu, IGitUICommands commands, Form owner)
+    {
+        const string gitLabMenuItem = "GitLabRepositoryHostsMenuItem";
+
+        IRepositoryHostPlugin? host = PluginRegistry.TryGetGitHosterForModule(commands.Module);
+        if (host?.Name is { Length: > 0 } hostName)
+        {
+            repositoryHostsMenu.Text = hostName;
+        }
+
+        ToolStripItemCollection items = repositoryHostsMenu.DropDownItems;
+        for (int i = items.Count - 1; i >= 0; i--)
+        {
+            if (items[i].Tag as string == gitLabMenuItem)
+            {
+                items.RemoveAt(i);
+            }
+        }
+
+        bool isGitLab = host == this;
+        ToolStripItem? viewPullRequests = items.Find("_viewPullRequestsToolStripMenuItem", searchAllChildren: false).FirstOrDefault();
+        ToolStripItem? createPullRequest = items.Find("_createPullRequestsToolStripMenuItem", searchAllChildren: false).FirstOrDefault();
+        foreach (ToolStripItem? nativeItem in new[] { viewPullRequests, createPullRequest })
+        {
+            if (nativeItem is not null)
+            {
+                nativeItem.Visible = !isGitLab;
+            }
+        }
+
+        if (!isGitLab)
+        {
+            return;
+        }
+
+        int index = viewPullRequests is null ? items.Count : items.IndexOf(viewPullRequests);
+        items.Insert(index, new ToolStripMenuItem(_mergeRequestsMenu.Text, Icon, (_, _) => ShowMergeRequests(commands, owner)) { Tag = gitLabMenuItem });
+        items.Insert(index + 1, new ToolStripMenuItem(_createMergeRequestMenu.Text, image: null, (_, _) => ShowCreateMergeRequest(commands, owner)) { Tag = gitLabMenuItem });
     }
 
     /// <summary>
@@ -121,19 +163,26 @@ public sealed class GitLabPlugin : GitPluginBase, IRepositoryHostPlugin
     /// </summary>
     public override bool Execute(GitUIEventArgs args)
     {
-        if (!EnsureConfigured(args.GitUICommands))
-        {
-            return false;
-        }
-
-        if (!EnsureRelevantRepository(args.OwnerForm))
-        {
-            return false;
-        }
-
-        args.GitUICommands.ShowModelessForm(args.OwnerForm, requiresValidWorkingDir: true, preEvent: null, postEvent: null,
-            () => new MergeRequestsForm(args.GitUICommands, this));
+        ShowMergeRequests(args.GitUICommands, args.OwnerForm);
         return false;
+    }
+
+    internal void ShowMergeRequests(IGitUICommands commands, IWin32Window? owner)
+    {
+        if (EnsureConfigured(commands) && EnsureRelevantRepository(owner))
+        {
+            commands.ShowModelessForm(owner, requiresValidWorkingDir: true, preEvent: null, postEvent: null,
+                () => new MergeRequestsForm(commands, this));
+        }
+    }
+
+    internal void ShowCreateMergeRequest(IGitUICommands commands, IWin32Window? owner)
+    {
+        if (EnsureConfigured(commands) && EnsureRelevantRepository(owner))
+        {
+            using CreateMergeRequestForm form = new(commands, this);
+            form.ShowDialog(owner);
+        }
     }
 
     /// <summary>

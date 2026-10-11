@@ -2,7 +2,6 @@ using System.ComponentModel.Composition;
 using GitCommands;
 using GitExtensions.Extensibility.Git;
 using GitExtensions.Extensibility.Plugins;
-using GitExtensions.GitLab.Forms;
 
 namespace GitExtensions.GitLab;
 
@@ -25,14 +24,7 @@ public sealed class CreateMergeRequestPlugin : GitPluginBase
 
     public override bool Execute(GitUIEventArgs args)
     {
-        GitLabPlugin? gitLab = GitLabPlugin.Instance;
-        if (gitLab is null || !gitLab.EnsureConfigured(args.GitUICommands) || !gitLab.EnsureRelevantRepository(args.OwnerForm))
-        {
-            return false;
-        }
-
-        using CreateMergeRequestForm form = new(args.GitUICommands, gitLab);
-        form.ShowDialog(args.OwnerForm);
+        GitLabPlugin.Instance?.ShowCreateMergeRequest(args.GitUICommands, args.OwnerForm);
         return false;
     }
 }
