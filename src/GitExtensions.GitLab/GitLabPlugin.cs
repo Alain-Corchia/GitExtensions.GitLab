@@ -79,13 +79,41 @@ public sealed class GitLabPlugin : GitPluginBase, IRepositoryHostPlugin
         base.Register(gitUiCommands);
         _gitUICommands = gitUiCommands;
         ClearHostedRemotes();
+        gitUiCommands.PostRegisterPlugin += OnPostRegisterPlugin;
     }
 
     public override void Unregister(IGitUICommands gitUiCommands)
     {
+        gitUiCommands.PostRegisterPlugin -= OnPostRegisterPlugin;
         _gitUICommands = null;
         ClearHostedRemotes();
         base.Unregister(gitUiCommands);
+    }
+
+    /// <summary>
+    ///  Git Extensions has a single "Repository hosts" menu, named after the first host plugin loaded (often GitHub),
+    ///  whereas its commands use the host of the current repository: name it after that host instead.
+    /// </summary>
+    private static void OnPostRegisterPlugin(object? sender, GitUIEventArgs e)
+    {
+        if (e.OwnerForm is not Form form || form.IsDisposed)
+        {
+            return;
+        }
+
+        // Deferred: Git Extensions sets the menu text right after registering the plugins.
+        form.BeginInvoke(() =>
+        {
+            if (form.IsDisposed
+                || form.Controls.Find("mainMenuStrip", searchAllChildren: true).FirstOrDefault() is not MenuStrip menuStrip
+                || menuStrip.Items.Find("_repositoryHostsToolStripMenuItem", searchAllChildren: false).FirstOrDefault() is not { } repositoryHostsMenu
+                || PluginRegistry.TryGetGitHosterForModule(e.GitUICommands.Module)?.Name is not { Length: > 0 } hostName)
+            {
+                return;
+            }
+
+            repositoryHostsMenu.Text = hostName;
+        });
     }
 
     /// <summary>
