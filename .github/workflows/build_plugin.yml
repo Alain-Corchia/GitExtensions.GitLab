@@ -8,6 +8,11 @@ jobs:
   build:
     runs-on: windows-latest
 
+    permissions:
+      contents: read
+      # Trusted Publishing: the OIDC token of the workflow is exchanged for a short-lived nuget.org API key.
+      id-token: write
+
     steps:
     - uses: actions/checkout@v4
 
@@ -33,6 +38,13 @@ jobs:
         name: GitExtensions.GitLab.MergeRequests
         path: artifacts/*.nupkg
 
+    - name: Log in to nuget.org
+      if: startsWith(github.ref, 'refs/tags/v')
+      id: nuget-login
+      uses: NuGet/login@v1
+      with:
+        user: Alain.Corchia
+
     - name: Push to nuget.org
       if: startsWith(github.ref, 'refs/tags/v')
-      run: dotnet nuget push artifacts/*.nupkg --api-key ${{ secrets.NUGET_PUSH_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push artifacts/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

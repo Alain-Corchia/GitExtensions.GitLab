@@ -78,7 +78,9 @@ dotnet pack src/GitExtensions.GitLab -c Release -o artifacts
 ## Publishing
 
 The GitHub workflow builds, tests and packs every push. Pushing a tag `v<version>` also publishes the
-package to nuget.org, with the API key stored in the `NUGET_PUSH_TOKEN` secret of the repository.
+package to nuget.org with [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing):
+no API key is stored, the nuget.org policy of the owner `Alain.Corchia` trusts the workflow `build_plugin.yml`
+of this repository.
 The tag must match `VersionPrefix` in `src/GitExtensions.GitLab/GitExtensions.GitLab.csproj`:
 
 ```bash
