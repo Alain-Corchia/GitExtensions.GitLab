@@ -26,9 +26,9 @@ with forks. Requires **Git Extensions 7.x** (.NET 10).
 ## Installation
 
 - With the [Plugin Manager](https://github.com/gitextensions/gitextensions.pluginmanager): install the
-  `GitExtensions.GitLab` package (version 2.0 or later for Git Extensions 7).
-- Manually: copy `GitExtensions.GitLab.dll` into
-  `%LOCALAPPDATA%\GitExtensions\UserPlugins\GitExtensions.GitLab\` (or `UserPlugins\GitExtensions.GitLab\`
+  `GitExtensions.GitLab.Raincode` package (from the internal package source).
+- Manually: copy `GitExtensions.GitLab.Raincode.dll` into
+  `%LOCALAPPDATA%\GitExtensions\UserPlugins\GitExtensions.GitLab.Raincode\` (or `UserPlugins\GitExtensions.GitLab.Raincode\`
   next to `GitExtensions.exe` for a portable installation), then restart Git Extensions.
 
 ## Configuration

@@ -9,7 +9,7 @@
     <PropertyGroup>
       <_UserPluginsPath Condition="'$(UserPluginsPath)' != ''">$(UserPluginsPath)</_UserPluginsPath>
       <_UserPluginsPath Condition="'$(UserPluginsPath)' == ''">$(LOCALAPPDATA)\GitExtensions\UserPlugins</_UserPluginsPath>
-      <_PluginDeployPath>$(_UserPluginsPath)\$(MSBuildProjectName)</_PluginDeployPath>
+      <_PluginDeployPath>$(_UserPluginsPath)\$(AssemblyName)</_PluginDeployPath>
     </PropertyGroup>
     <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb" DestinationFolder="$(_PluginDeployPath)" Retries="0" ContinueOnError="WarnAndContinue" />
     <Message Condition="'$(MSBuildLastTaskResult)' == 'true'" Text="Plugin deployed to $(_PluginDeployPath) (restart Git Extensions to load it)" Importance="high" />
